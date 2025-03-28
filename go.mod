@@ -4,7 +4,9 @@ go 1.24.1
 
 require (
 	github.com/insomniacslk/dhcp v0.0.0-20250109001534-8abf58130905
+	github.com/metal-stack/v v1.0.3
 	github.com/spf13/cobra v1.9.1
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

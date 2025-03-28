@@ -2,43 +2,38 @@ package cmd
 
 import (
 	"log/slog"
-	"net"
 	"os"
 
-	"github.com/insomniacslk/dhcp/dhcpv4"
-	"github.com/insomniacslk/dhcp/dhcpv4/client4"
-	"github.com/insomniacslk/dhcp/dhcpv4/server4"
+	"github.com/metal-stack/go-dhcp-relay/config"
+	"github.com/metal-stack/go-dhcp-relay/server"
 	"github.com/spf13/cobra"
 )
 
 var log *slog.Logger
 
-func handler(conn net.PacketConn, peer net.Addr, m *dhcpv4.DHCPv4) {
-	log.Debug("handle", "packet", *m, "peer", peer)
-	client := client4.NewClient()
-
-	conversation, _ := client.Exchange("wlan0", dhcpv4.WithServerIP(net.ParseIP("172.31.250.4")))
-	for _, packet := range conversation {
-		log.Debug("dhcp packet received", "packet", packet.Summary())
-	}
-}
-
 var rootCmd = &cobra.Command{
 	Use:   "go-dhcp-relay",
-	Short: "A simply dhcp relay implementation",
+	Short: "A simple dhcp relay implementation",
 	Run: func(cmd *cobra.Command, args []string) {
-		laddr := &net.UDPAddr{
-			IP:   net.ParseIP("0.0.0.0"),
-			Port: dhcpv4.ServerPort,
-		}
-		server, err := server4.NewServer("", laddr, handler)
+		configFile, _ := cmd.Flags().GetString("config")
+
+		configBytes, err := os.ReadFile(configFile)
 		if err != nil {
-			log.Error("unable to start server", "error", err)
+			log.Error("failed to open config file", "error", err)
 			os.Exit(1)
 		}
 
-		log.Info("starting dhcp relay", "listen address", laddr)
-		server.Serve()
+		config, err := config.UnmarshalConfig(configBytes)
+		if err != nil {
+			log.Error("failed to parse config file", "error", err)
+			os.Exit(1)
+		}
+
+		err = server.Serve(log, config)
+		if err != nil {
+			log.Error("failed to start dhcp relay", "error", err)
+			os.Exit(1)
+		}
 	},
 }
 
@@ -53,4 +48,6 @@ func init() {
 	log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
+
+	rootCmd.Flags().StringP("config", "c", "/etc/go-dhcp-relay/config.yaml", "path to config file")
 }
