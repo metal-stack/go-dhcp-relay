@@ -16,3 +16,13 @@ The following parameters can be configured.
 | interface       | string   | the interface to configure     |
 | gateway-address | string   | the relay's ip address         |
 | dhcp-servers    | []string | the dhcp servers' ip addresses |
+
+Example configuration:
+
+```yaml
+interface: Vlan4000
+gateway-address: 10.255.0.1/24
+dhcp-servers:
+  - 10.1.255.1
+  - 10.1.255.2
+```
