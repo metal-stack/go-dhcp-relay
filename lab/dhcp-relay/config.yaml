@@ -1,0 +1,4 @@
+interface: wlan0
+gateway-address: 127.0.0.1
+dhcp-servers:
+  - 192.168.2.1

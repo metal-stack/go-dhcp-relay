@@ -1,0 +1,25 @@
+services:
+  dhcp-relay:
+    image: go-dhcp-relay:local
+    networks:
+      - vlan4000
+    volumes:
+      - ./dhcp-relay:/etc/go-dhcp-relay
+
+  dhcp-server:
+    image: dhcp-server:local
+
+  dhcp-client:
+    image: dhcp-client:local
+    privileged: true
+    networks:
+      - vlan4000
+
+networks:
+  vlan4000:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: docker_vlan4000
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24

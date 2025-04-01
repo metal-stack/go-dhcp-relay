@@ -5,31 +5,39 @@ import (
 	"net"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
-	"github.com/insomniacslk/dhcp/dhcpv4/server4"
 	"github.com/metal-stack/go-dhcp-relay/config"
 )
 
 func Serve(log *slog.Logger, config *config.Config) error {
-	listenAddress := &net.UDPAddr{
-		IP:   net.ParseIP("0.0.0.0"),
+	laddr := &net.UDPAddr{
+		IP:   net.IPv4(0, 0, 0, 0),
 		Port: dhcpv4.ServerPort,
 	}
 
-	handler := &handler{
-		log:    log,
-		config: config,
-	}
+	log.Info("starting dhcp-relay", "listen address", laddr)
 
-	server, err := server4.NewServer("", listenAddress, handler.handle)
+	conn, err := net.ListenUDP("udp", laddr)
 	if err != nil {
 		return err
 	}
 
-	log.Info("starting dhcp relay", "listen address", listenAddress)
-	err = server.Serve()
-	if err != nil {
-		return err
-	}
+	defer func() {
+		conn.Close()
+	}()
 
-	return nil
+	// TODO: add ctx and check if it's done
+	for {
+		buf := make([]byte, 1024)
+		n, remoteAddr, err := conn.ReadFrom(buf)
+		if err != nil {
+			return err
+		}
+
+		packet, err := dhcpv4.FromBytes(buf)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("received request", "read bytes", n, "peer", remoteAddr, "packet", packet.Summary())
+	}
 }

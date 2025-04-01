@@ -22,14 +22,6 @@ build:
 		-o bin/$(BINARY) \
 		github.com/metal-stack/go-dhcp-relay
 
-.PHONY: start-test-server
-start-test-server: docker-build
-	docker run --rm -it --network host -v $(shell pwd)/test:/etc/go-dhcp-relay go-dhcp-relay:local
-
-.PHONY: run-test-client
-run-test-client:
-	docker run --rm -it --network host go-dhcp-relay:local test-client -i lo
-
 .PHONY: lint
 lint:
 	golangci-lint run --build-tags client -p bugs -p unused
@@ -37,3 +29,16 @@ lint:
 .PHONY: docker-build
 docker-build:
 	docker build -t go-dhcp-relay:local .
+
+.PHONY: lab-up
+lab-up: docker-build
+	docker build -t dhcp-server:local lab/dhcp-server
+	docker build -t dhcp-client:local lab/dhcp-client
+	docker compose -f ./lab/docker-compose.yaml up -d
+
+.PHONY: lab-down
+lab-down:
+	docker compose -f ./lab/docker-compose.yaml down
+
+.PHONY: restart-lab
+restart-lab: lab-down lab-up
