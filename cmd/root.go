@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/metal-stack/go-dhcp-relay/config"
 	"github.com/metal-stack/go-dhcp-relay/server"
@@ -29,11 +33,31 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		err = server.Serve(log, config)
-		if err != nil {
-			log.Error("failed to start dhcp relay", "error", err)
-			os.Exit(1)
-		}
+		s := server.NewServer(log, config)
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+		defer func() {
+			stop()
+		}()
+
+		var wg sync.WaitGroup
+		var code int
+		wg.Add(1)
+
+		go func() {
+			defer func() {
+				wg.Done()
+			}()
+
+			err := s.Serve(ctx)
+			if err != nil {
+				log.Error("failed to start dhcp relay", "error", err)
+				code = 1
+				return
+			}
+		}()
+
+		wg.Wait()
+		os.Exit(code)
 	},
 }
 

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net"
 
@@ -8,13 +10,25 @@ import (
 	"github.com/metal-stack/go-dhcp-relay/config"
 )
 
-func Serve(log *slog.Logger, config *config.Config) error {
+type Server struct {
+	config *config.Config
+	log    *slog.Logger
+}
+
+func NewServer(log *slog.Logger, config *config.Config) *Server {
+	return &Server{
+		config: config,
+		log:    log,
+	}
+}
+
+func (s *Server) Serve(ctx context.Context) error {
 	laddr := &net.UDPAddr{
 		IP:   net.IPv4(0, 0, 0, 0),
 		Port: dhcpv4.ServerPort,
 	}
 
-	log.Info("starting dhcp-relay", "listen address", laddr)
+	s.log.Info("starting dhcp-relay", "listen address", laddr)
 
 	conn, err := net.ListenUDP("udp", laddr)
 	if err != nil {
@@ -25,19 +39,50 @@ func Serve(log *slog.Logger, config *config.Config) error {
 		conn.Close()
 	}()
 
-	// TODO: add ctx and check if it's done
+	packet := make(chan *dhcpv4.DHCPv4)
+
 	for {
-		buf := make([]byte, 1024)
-		n, remoteAddr, err := conn.ReadFrom(buf)
-		if err != nil {
-			return err
-		}
+		go func() {
+			p, err := s.listenForPackets(conn)
+			if err != nil && !errors.Is(err, net.ErrClosed) {
+				s.log.Error("error occurred while listening for packets", "error", err)
+				return
+			}
 
-		packet, err := dhcpv4.FromBytes(buf)
-		if err != nil {
-			return err
-		}
+			packet <- p
+		}()
 
-		log.Debug("received request", "read bytes", n, "peer", remoteAddr, "packet", packet.Summary())
+		select {
+		case <-ctx.Done():
+			s.log.Info("shutdown signal received")
+			return nil
+
+		case p := <-packet:
+			err := s.handlePacket(p)
+			if err != nil {
+				s.log.Error("error occurred while processing packet", "error", err)
+			}
+		}
 	}
+}
+
+func (s *Server) listenForPackets(conn *net.UDPConn) (*dhcpv4.DHCPv4, error) {
+	buf := make([]byte, 1024)
+	n, remoteAddr, err := conn.ReadFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := dhcpv4.FromBytes(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	s.log.Debug("packet received", "read bytes", n, "peer", remoteAddr, "packet", p.Summary())
+	return p, nil
+}
+
+func (s *Server) handlePacket(packet *dhcpv4.DHCPv4) error {
+	s.log.Debug("handle packet", "packet", packet.Summary())
+	return nil
 }
