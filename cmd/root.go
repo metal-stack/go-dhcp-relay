@@ -38,7 +38,12 @@ var rootCmd = &cobra.Command{
 			IP:   net.ParseIP(config.GatewayAddress),
 			Port: dhcpv4.ServerPort,
 		}
+
 		s, err := server4.NewServer(config.Interface, addr, h.Handle)
+		if err != nil {
+			log.Error("failed to initialize dhcp relay", "error", err)
+			os.Exit(1)
+		}
 
 		var wg sync.WaitGroup
 		var code int
@@ -48,6 +53,7 @@ var rootCmd = &cobra.Command{
 			defer func() {
 				wg.Done()
 			}()
+			log.Info("starting dhcp relay", "listen address", addr)
 
 			err := s.Serve()
 			if err != nil {
