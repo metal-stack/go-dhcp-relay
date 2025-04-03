@@ -1,4 +1,4 @@
 interface: eth0
-gateway-address: 10.0.0.1/24
+gateway-address: 10.255.0.3
 dhcp-servers:
-  - 172.20.0.2
+  - 10.1.255.2

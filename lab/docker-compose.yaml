@@ -2,12 +2,20 @@ services:
   dhcp-relay:
     image: go-dhcp-relay:local
     networks:
-      - vlan4000
+      underlay:
+        ipv4_address: 10.1.255.150
+      vlan4000:
+        ipv4_address: 10.255.0.3
+    entrypoint: /etc/go-dhcp-relay/start.sh
     volumes:
       - ./dhcp-relay:/etc/go-dhcp-relay
 
   dhcp-server:
     image: dhcp-server:local
+    privileged: true
+    networks:
+      underlay:
+        ipv4_address: 10.1.255.2
 
   dhcp-client:
     image: dhcp-client:local
@@ -17,9 +25,11 @@ services:
 
 networks:
   vlan4000:
-    driver: bridge
-    driver_opts:
-      com.docker.network.bridge.name: docker_vlan4000
     ipam:
       config:
-        - subnet: 10.0.0.0/24
+        - subnet: 10.255.0.0/24
+
+  underlay:
+    ipam:
+      config:
+        - subnet: 10.1.255.0/24

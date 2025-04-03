@@ -40,5 +40,9 @@ lab-up: docker-build
 lab-down:
 	docker compose -f ./lab/docker-compose.yaml down
 
-.PHONY: restart-lab
-restart-lab: lab-down lab-up
+.PHONY: lab-restart
+lab-restart: lab-down lab-up
+
+.PHONY: lab-logs
+lab-logs:
+	docker compose -f ./lab/docker-compose.yaml logs

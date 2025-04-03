@@ -1,15 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"log/slog"
-	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
-	"github.com/insomniacslk/dhcp/dhcpv4"
-	"github.com/insomniacslk/dhcp/dhcpv4/server4"
 	"github.com/metal-stack/go-dhcp-relay/config"
-	"github.com/metal-stack/go-dhcp-relay/handler"
+	"github.com/metal-stack/go-dhcp-relay/server"
 	"github.com/spf13/cobra"
 )
 
@@ -33,17 +33,12 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		h := handler.NewHandler(log, config)
-		addr := &net.UDPAddr{
-			IP:   net.ParseIP(config.GatewayAddress),
-			Port: dhcpv4.ServerPort,
-		}
+		s := server.NewServer(log, config)
 
-		s, err := server4.NewServer(config.Interface, addr, h.Handle)
-		if err != nil {
-			log.Error("failed to initialize dhcp relay", "error", err)
-			os.Exit(1)
-		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+		defer func() {
+			stop()
+		}()
 
 		var wg sync.WaitGroup
 		var code int
@@ -53,9 +48,8 @@ var rootCmd = &cobra.Command{
 			defer func() {
 				wg.Done()
 			}()
-			log.Info("starting dhcp relay", "listen address", addr)
 
-			err := s.Serve()
+			err := s.Serve(ctx)
 			if err != nil {
 				log.Error("failed to start dhcp relay", "error", err)
 				code = 1
