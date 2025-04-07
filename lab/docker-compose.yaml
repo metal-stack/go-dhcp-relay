@@ -6,7 +6,6 @@ services:
         ipv4_address: 10.1.255.150
       vlan4000:
         ipv4_address: 10.255.0.3
-    entrypoint: /etc/go-dhcp-relay/start.sh
     volumes:
       - ./dhcp-relay:/etc/go-dhcp-relay
 

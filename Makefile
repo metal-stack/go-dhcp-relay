@@ -42,7 +42,3 @@ lab-down:
 
 .PHONY: lab-restart
 lab-restart: lab-down lab-up
-
-.PHONY: lab-logs
-lab-logs:
-	docker compose -f ./lab/docker-compose.yaml logs

@@ -33,7 +33,11 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		s := server.NewServer(log, config)
+		s, err := server.NewServer(log, config)
+		if err != nil {
+			log.Error("failed to initialize dhcp relay", "error", err)
+			os.Exit(1)
+		}
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		defer func() {
@@ -48,13 +52,7 @@ var rootCmd = &cobra.Command{
 			defer func() {
 				wg.Done()
 			}()
-
-			err := s.Serve(ctx)
-			if err != nil {
-				log.Error("failed to start dhcp relay", "error", err)
-				code = 1
-				return
-			}
+			s.Serve(ctx)
 		}()
 
 		wg.Wait()
