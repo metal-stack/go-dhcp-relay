@@ -32,13 +32,14 @@ docker-build:
 
 .PHONY: lab-up
 lab-up: docker-build
+	docker build -t dhcp-relay:local lab/dhcp-relay
 	docker build -t dhcp-server:local lab/dhcp-server
 	docker build -t dhcp-client:local lab/dhcp-client
-	docker compose -f ./lab/docker-compose.yaml up -d
+	sudo containerlab deploy -t ./lab/go-dhcp-relay.clab.yaml
 
 .PHONY: lab-down
 lab-down:
-	docker compose -f ./lab/docker-compose.yaml down
+	sudo containerlab destroy -t ./lab/go-dhcp-relay.clab.yaml
 
 .PHONY: lab-restart
 lab-restart: lab-down lab-up

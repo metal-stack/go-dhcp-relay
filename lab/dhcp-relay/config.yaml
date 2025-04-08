@@ -1,4 +1,4 @@
-interface: eth1
-gateway-address: 10.255.0.3
+interface: Vlan4000
+gateway-address: 10.255.0.1
 dhcp-servers:
   - 10.1.255.2

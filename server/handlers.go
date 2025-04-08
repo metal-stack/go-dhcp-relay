@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
+	"golang.org/x/net/ipv4"
 )
 
 func (s *Server) handlePacket(packet *dhcpv4.DHCPv4) error {
@@ -44,7 +45,7 @@ func (s *Server) handleMessageTypeDiscover(packet *dhcpv4.DHCPv4) error {
 			Port: dhcpv4.ServerPort,
 		}
 
-		n, err := s.sendTo(packet, addr)
+		n, err := s.sendTo(packet, addr, "")
 		if err != nil {
 			// FIX: returning here without trying the second is probably bad
 			return fmt.Errorf("failed to send packet to server %s:%w", serverIP, err)
@@ -58,23 +59,16 @@ func (s *Server) handleMessageTypeDiscover(packet *dhcpv4.DHCPv4) error {
 func (s *Server) handleMessageTypeOffer(packet *dhcpv4.DHCPv4) error {
 	s.log.Debug("handle offer", "packet", packet.Summary())
 
-	broadcastAddresses, err := getBroadcastAddresses(s.config.Interface)
+	addr := &net.UDPAddr{
+		IP:   net.IPv4bcast,
+		Port: dhcpv4.ClientPort,
+	}
+
+	n, err := s.sendTo(packet, addr, s.config.Interface)
 	if err != nil {
-		return fmt.Errorf("failed to get broadcast addresses for interface:%w", err)
+		return fmt.Errorf("failed to send packet to %s:%w", addr, err)
 	}
-
-	for _, ip := range broadcastAddresses {
-		addr := &net.UDPAddr{
-			IP:   ip,
-			Port: dhcpv4.ClientPort,
-		}
-
-		n, err := s.sendTo(packet, addr)
-		if err != nil {
-			return fmt.Errorf("failed to send packet to %s:%w", addr, err)
-		}
-		s.log.Debug("packet sent to client", "bytes sent", n, "address", addr, "packet", packet.Summary())
-	}
+	s.log.Debug("packet sent to client", "bytes sent", n, "address", addr, "packet", packet.Summary())
 
 	return nil
 }
@@ -90,7 +84,7 @@ func (s *Server) handleMessageTypeRequest(packet *dhcpv4.DHCPv4) error {
 		Port: dhcpv4.ServerPort,
 	}
 
-	n, err := s.sendTo(packet, addr)
+	n, err := s.sendTo(packet, addr, "")
 	if err != nil {
 		return fmt.Errorf("failed to send packet to server %s:%w", serverIP, err)
 	}
@@ -102,29 +96,33 @@ func (s *Server) handleMessageTypeRequest(packet *dhcpv4.DHCPv4) error {
 func (s *Server) handleMessageTypeAck(packet *dhcpv4.DHCPv4) error {
 	s.log.Debug("handle acknowledgment", "packet", packet.Summary())
 
-	broadcastAddresses, err := getBroadcastAddresses(s.config.Interface)
+	addr := &net.UDPAddr{
+		IP:   net.IPv4bcast,
+		Port: dhcpv4.ClientPort,
+	}
+
+	n, err := s.sendTo(packet, addr, s.config.Interface)
 	if err != nil {
-		return fmt.Errorf("failed to get broadcast addresses for interface:%w", err)
+		return fmt.Errorf("failed to send packet to %s:%w", addr, err)
 	}
-
-	for _, ip := range broadcastAddresses {
-		addr := &net.UDPAddr{
-			IP:   ip,
-			Port: dhcpv4.ClientPort,
-		}
-
-		n, err := s.sendTo(packet, addr)
-		if err != nil {
-			return fmt.Errorf("failed to send packet to %s:%w", addr, err)
-		}
-		s.log.Debug("packet sent to client", "bytes sent", n, "address", addr, "packet", packet.Summary())
-	}
+	s.log.Debug("packet sent to client", "bytes sent", n, "address", addr, "packet", packet.Summary())
 
 	return nil
 }
 
-func (s *Server) sendTo(packet *dhcpv4.DHCPv4, addr *net.UDPAddr) (int, error) {
-	n, err := s.conn.WriteToUDP(packet.ToBytes(), addr)
+func (s *Server) sendTo(packet *dhcpv4.DHCPv4, addr *net.UDPAddr, ifname string) (int, error) {
+	var cm *ipv4.ControlMessage
+	if ifname != "" {
+		intf, err := net.InterfaceByName(ifname)
+		if err != nil {
+			return 0, fmt.Errorf("failed to retrieve interface:%w", err)
+		}
+		cm = &ipv4.ControlMessage{
+			IfIndex: intf.Index,
+		}
+	}
+
+	n, err := s.conn.WriteTo(packet.ToBytes(), cm, addr)
 	if err != nil {
 		return 0, err
 	}

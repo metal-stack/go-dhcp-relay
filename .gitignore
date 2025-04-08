@@ -1,2 +1,4 @@
 test
 bin/*
+*.bak
+clab-go-dhcp-relay

@@ -8,29 +8,26 @@ import (
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/metal-stack/go-dhcp-relay/config"
+	"golang.org/x/net/ipv4"
 )
 
 type Server struct {
 	config *config.Config
 	log    *slog.Logger
-	conn   *net.UDPConn
+	conn   *ipv4.PacketConn
 }
 
 func NewServer(log *slog.Logger, config *config.Config) (*Server, error) {
-	laddr := &net.UDPAddr{
-		IP:   net.IPv4zero,
-		Port: dhcpv4.ServerPort,
-	}
-
-	conn, err := net.ListenUDP("udp", laddr)
+	conn, err := net.ListenPacket("udp4", fmt.Sprintf("%s:%d", net.IPv4zero, dhcpv4.ServerPort))
 	if err != nil {
 		return nil, err
 	}
+	packetConn := ipv4.NewPacketConn(conn)
 
 	s := &Server{
 		config: config,
 		log:    log,
-		conn:   conn,
+		conn:   packetConn,
 	}
 
 	return s, nil
@@ -74,11 +71,11 @@ func (s *Server) Serve(ctx context.Context) {
 func (s *Server) listen(recvChan chan<- []byte, errChan chan<- error) {
 	bytes := make([]byte, 1024)
 
-	n, err := s.conn.Read(bytes)
+	n, _, src, err := s.conn.ReadFrom(bytes)
 	if err != nil {
 		errChan <- fmt.Errorf("failed to read message: %w", err)
 		return
 	}
-	s.log.Debug("message received", "bytes read", n)
+	s.log.Debug("message received", "bytes read", n, "source address", src)
 	recvChan <- bytes
 }
