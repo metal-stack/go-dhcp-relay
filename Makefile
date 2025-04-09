@@ -28,7 +28,7 @@ lint:
 
 .PHONY: docker-build
 docker-build:
-	docker build -t go-dhcp-relay:local .
+	docker build -t go-dhcp-relay:latest .
 
 .PHONY: lab-up
 lab-up: docker-build

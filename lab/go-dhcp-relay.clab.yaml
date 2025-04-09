@@ -2,7 +2,15 @@ name: go-dhcp-relay
 
 topology:
   nodes:
-    dhcp-client:
+    dhcp-client1:
+      kind: linux
+      image: dhcp-client:local
+      network-mode: none
+      entrypoint: /etc/dhcp-client/start.sh
+      binds:
+        - ./dhcp-client:/etc/dhcp-client
+
+    dhcp-client2:
       kind: linux
       image: dhcp-client:local
       network-mode: none
@@ -18,14 +26,25 @@ topology:
       binds:
         - ./dhcp-relay:/etc/go-dhcp-relay
 
-    dhcp-server:
+    dhcp-server1:
       kind: linux
       image: dhcp-server:local
       network-mode: none
-      entrypoint: /etc/dhcp-server/start.sh
+      entrypoint: /etc/dhcp/start.sh
       binds:
-        - ./dhcp-server:/etc/dhcp-server
+        - ./dhcp-server/1:/etc/dhcp
+
+    dhcp-server2:
+      kind: linux
+      image: dhcp-server:local
+      network-mode: none
+      entrypoint: /etc/dhcp/start.sh
+      binds:
+        - ./dhcp-server/2:/etc/dhcp
 
   links:
-    - endpoints: ["dhcp-client:eth1", "dhcp-relay:Ethernet0"]
-    - endpoints: ["dhcp-relay:eth0", "dhcp-server:eno2"]
+    - endpoints: ["dhcp-client1:eth0", "dhcp-relay:Ethernet0"]
+    - endpoints: ["dhcp-client2:eth0", "dhcp-relay:Ethernet1"]
+
+    - endpoints: ["dhcp-relay:eth0", "dhcp-server1:eno2"]
+    - endpoints: ["dhcp-relay:eth1", "dhcp-server2:eno2"]

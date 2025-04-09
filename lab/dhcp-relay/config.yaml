@@ -2,3 +2,4 @@ interface: Vlan4000
 gateway-address: 10.255.0.1
 dhcp-servers:
   - 10.1.255.2
+  - 10.1.255.18
