@@ -37,6 +37,8 @@ func NewServer(log *slog.Logger, config *config.Config) (*Server, error) {
 }
 
 func (s *Server) Serve(ctx context.Context) {
+	s.log.Info("starting dhcp relay", "listening interface", s.config.Interface, "dhcp helpers", s.config.DHCPServers)
+
 	defer func() {
 		err := s.conn.Close()
 		if err != nil {
