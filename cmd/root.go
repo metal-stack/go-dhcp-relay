@@ -32,6 +32,11 @@ var rootCmd = &cobra.Command{
 			log.Error("failed to parse config file", "error", err)
 			os.Exit(1)
 		}
+
+		if err := config.Validate(); err != nil {
+			log.Error("config validation failed", "error", err)
+			os.Exit(1)
+		}
 		config.SetDefaults()
 
 		s, err := server.NewServer(log, config)
