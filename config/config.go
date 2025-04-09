@@ -12,7 +12,6 @@ const (
 
 type Config struct {
 	Interface       string   `yaml:"interface"`
-	GatewayAddress  string   `yaml:"gateway-address"`
 	DHCPServers     []string `yaml:"dhcp-servers"`
 	MaximumHopCount uint8    `yaml:"maximum-hop-count"`
 }

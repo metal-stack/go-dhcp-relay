@@ -29,16 +29,17 @@ func (s *Server) handlePacket(packet *dhcpv4.DHCPv4) error {
 
 func (s *Server) handleMessageTypeDiscover(packet *dhcpv4.DHCPv4) error {
 	s.log.Debug("handle discover", "packet", packet.Summary())
+
 	if packet.HopCount >= s.config.MaximumHopCount {
 		return fmt.Errorf("maximum hop count exceeded, dropping packet")
 	}
 	packet.HopCount++
-
-	if packet.GatewayIPAddr.Equal(net.IPv4(0, 0, 0, 0)) {
-		// TODO: check if correct: rfc "relay agent MUST fill this field with the IP address of the interface on which the request was received"
-		packet.GatewayIPAddr = net.ParseIP(s.config.GatewayAddress)
-	}
 	packet.SetBroadcast()
+
+	err := injectGatewayAddress(packet, s.config.Interface)
+	if err != nil {
+		return fmt.Errorf("failed to inject gateway address:%w", err)
+	}
 
 	errs := make([]error, 0)
 	for _, serverIP := range s.config.DHCPServers {
@@ -77,7 +78,10 @@ func (s *Server) handleMessageTypeOffer(packet *dhcpv4.DHCPv4) error {
 func (s *Server) handleMessageTypeRequest(packet *dhcpv4.DHCPv4) error {
 	s.log.Debug("handle request", "packet", packet.Summary())
 
-	packet.GatewayIPAddr = net.ParseIP(s.config.GatewayAddress)
+	err := injectGatewayAddress(packet, s.config.Interface)
+	if err != nil {
+		return fmt.Errorf("failed to inject gateway address:%w", err)
+	}
 
 	serverIP := packet.ServerIdentifier()
 	addr := &net.UDPAddr{
@@ -129,4 +133,32 @@ func (s *Server) sendTo(packet *dhcpv4.DHCPv4, addr *net.UDPAddr, ifname string)
 	}
 
 	return n, nil
+}
+
+func injectGatewayAddress(packet *dhcpv4.DHCPv4, ifname string) error {
+	if !packet.GatewayIPAddr.Equal(net.IPv4zero) {
+		return nil
+	}
+
+	iface, err := net.InterfaceByName(ifname)
+	if err != nil {
+		return err
+	}
+
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return err
+	}
+
+	for _, addr := range addrs {
+		ip, _, err := net.ParseCIDR(addr.String())
+		if err != nil {
+			return err
+		}
+		if ip.To4() != nil {
+			packet.GatewayIPAddr = ip
+		}
+	}
+
+	return nil
 }
