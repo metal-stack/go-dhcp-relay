@@ -28,7 +28,7 @@ func (s *Server) handlePacket(packet *dhcpv4.DHCPv4) error {
 
 func (s *Server) handleMessageTypeDiscover(packet *dhcpv4.DHCPv4) error {
 	s.log.Debug("handle discover", "packet", packet.Summary())
-	if packet.HopCount >= 3 { // TODO: make this value configurable, rfc maximum is 16
+	if packet.HopCount >= s.config.MaximumHopCount {
 		return fmt.Errorf("maximum hop count exceeded, dropping packet")
 	}
 	packet.HopCount++
