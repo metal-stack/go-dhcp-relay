@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -39,6 +40,7 @@ func (s *Server) handleMessageTypeDiscover(packet *dhcpv4.DHCPv4) error {
 	}
 	packet.SetBroadcast()
 
+	errs := make([]error, 0)
 	for _, serverIP := range s.config.DHCPServers {
 		addr := &net.UDPAddr{
 			IP:   net.ParseIP(serverIP),
@@ -47,13 +49,12 @@ func (s *Server) handleMessageTypeDiscover(packet *dhcpv4.DHCPv4) error {
 
 		n, err := s.sendTo(packet, addr, "")
 		if err != nil {
-			// FIX: returning here without trying the second is probably bad
-			return fmt.Errorf("failed to send packet to server %s:%w", serverIP, err)
+			errs = append(errs, fmt.Errorf("%s:%w", serverIP, err))
 		}
 		s.log.Debug("packet sent to server", "bytes sent", n, "server address", serverIP, "packet", packet.Summary())
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (s *Server) handleMessageTypeOffer(packet *dhcpv4.DHCPv4) error {
