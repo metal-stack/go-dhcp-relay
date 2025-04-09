@@ -18,6 +18,15 @@ topology:
       binds:
         - ./dhcp-client:/etc/dhcp-client
 
+    # this client will be in a different VLAN and must be ignored by the relay
+    dhcp-client3:
+      kind: linux
+      image: dhcp-client:local
+      network-mode: none
+      entrypoint: /etc/dhcp-client/start.sh
+      binds:
+        - ./dhcp-client:/etc/dhcp-client
+
     dhcp-relay:
       kind: linux
       image: dhcp-relay:local
@@ -45,6 +54,7 @@ topology:
   links:
     - endpoints: ["dhcp-client1:eth0", "dhcp-relay:Ethernet0"]
     - endpoints: ["dhcp-client2:eth0", "dhcp-relay:Ethernet1"]
+    - endpoints: ["dhcp-client3:eth0", "dhcp-relay:Ethernet2"]
 
     - endpoints: ["dhcp-relay:eth0", "dhcp-server1:eno2"]
     - endpoints: ["dhcp-relay:eth1", "dhcp-server2:eno2"]

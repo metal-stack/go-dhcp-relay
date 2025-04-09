@@ -23,6 +23,9 @@ func NewServer(log *slog.Logger, config *config.Config) (*Server, error) {
 		return nil, err
 	}
 	packetConn := ipv4.NewPacketConn(conn)
+	if err := packetConn.SetControlMessage(ipv4.FlagInterface, true); err != nil {
+		return nil, err
+	}
 
 	s := &Server{
 		config: config,
@@ -43,14 +46,16 @@ func (s *Server) Serve(ctx context.Context) {
 
 	recvChan := make(chan []byte)
 	errChan := make(chan error)
+	dropChan := make(chan bool)
 
 	for {
-		go s.listen(recvChan, errChan)
+		go s.listen(recvChan, errChan, dropChan)
 
 		select {
 		case <-ctx.Done():
 			s.log.Debug("shutdown signal received")
 			return
+
 		case recv := <-recvChan:
 			packet, err := dhcpv4.FromBytes(recv)
 			if err != nil {
@@ -62,20 +67,41 @@ func (s *Server) Serve(ctx context.Context) {
 			if err != nil {
 				s.log.Error("failed to process packet", "error", err)
 			}
+
 		case err := <-errChan:
 			s.log.Error("error listening for packets", "error", err)
+
+		case _ = <-dropChan:
+			// noop
 		}
 	}
 }
 
-func (s *Server) listen(recvChan chan<- []byte, errChan chan<- error) {
+func (s *Server) listen(recvChan chan<- []byte, errChan chan<- error, dropChan chan<- bool) {
 	bytes := make([]byte, 1024)
 
-	n, _, src, err := s.conn.ReadFrom(bytes)
+	n, cm, src, err := s.conn.ReadFrom(bytes)
 	if err != nil {
-		errChan <- fmt.Errorf("failed to read message: %w", err)
+		errChan <- fmt.Errorf("failed to read message:%w", err)
 		return
 	}
-	s.log.Debug("message received", "bytes read", n, "source address", src)
+	if cm == nil {
+		errChan <- fmt.Errorf("dropping packet due to missing control message, source address:%v", src)
+		return
+	}
+	s.log.Debug("message received", "bytes read", n, "source address", src, "control message", cm)
+
+	iface, err := net.InterfaceByIndex(cm.IfIndex)
+	if err != nil {
+		errChan <- fmt.Errorf("failed to retrieve interface %d:%w", cm.IfIndex, err)
+		return
+	}
+
+	if cm.Dst.Equal(net.IPv4bcast) && iface.Name != s.config.Interface {
+		s.log.Debug("dropping broadcast packet from unconfigured interface", "interface", iface.Name)
+		dropChan <- true
+		return
+	}
+
 	recvChan <- bytes
 }
