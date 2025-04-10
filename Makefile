@@ -43,3 +43,8 @@ lab-down:
 
 .PHONY: lab-restart
 lab-restart: lab-down lab-up
+
+.PHONY: lab-graph
+lab-graph:
+	containerlab graph --drawio -t ./lab/go-dhcp-relay.clab.yaml
+	mv ./lab/go-dhcp-relay.clab.drawio images
