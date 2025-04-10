@@ -24,8 +24,6 @@ func (s *Server) handlePacket(packet *dhcpv4.DHCPv4) error {
 		return s.handleMessageTypeDecline(packet)
 	case dhcpv4.MessageTypeInform:
 		return s.handleMessageTypeInform(packet)
-	case dhcpv4.MessageTypeRelease:
-		return s.handleMessageTypeRelease(packet)
 	case dhcpv4.MessageTypeNak:
 		return s.handleMessageTypeNak(packet)
 	}
@@ -62,11 +60,6 @@ func (s *Server) handleMessageTypeRequest(packet *dhcpv4.DHCPv4) error {
 
 func (s *Server) handleMessageTypeDecline(packet *dhcpv4.DHCPv4) error {
 	s.log.Debug("handle decline", "packet", packet.Summary())
-	return s.sendToServer(packet)
-}
-
-func (s *Server) handleMessageTypeRelease(packet *dhcpv4.DHCPv4) error {
-	s.log.Debug("handle release", "packet", packet.Summary())
 	return s.sendToServer(packet)
 }
 
