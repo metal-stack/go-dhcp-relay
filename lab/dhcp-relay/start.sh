@@ -28,4 +28,4 @@ bridge vlan add vid 1000 dev Bridge self
 ip route add 10.1.255.2 dev eth0
 ip route add 10.1.255.18 dev eth1
 
-/usr/bin/go-dhcp-relay
+/usr/bin/go-dhcp-relay -i Vlan4000 -s 10.1.255.2 -s 10.1.255.18

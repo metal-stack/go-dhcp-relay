@@ -19,25 +19,28 @@ var rootCmd = &cobra.Command{
 	Use:   "go-dhcp-relay",
 	Short: "A simple dhcp relay implementation",
 	Run: func(cmd *cobra.Command, args []string) {
-		configFile, _ := cmd.Flags().GetString("config")
-
-		configBytes, err := os.ReadFile(configFile)
-		if err != nil {
-			log.Error("failed to open config file", "error", err)
+		iface, _ := cmd.Flags().GetString("interface")
+		if iface == "" {
+			log.Error("no listening interface was specified")
 			os.Exit(1)
 		}
 
-		config, err := config.UnmarshalConfig(configBytes)
-		if err != nil {
-			log.Error("failed to parse config file", "error", err)
+		count, _ := cmd.Flags().GetUint8("count")
+		servers, _ := cmd.Flags().GetStringArray("dhcp-servers")
+		if len(servers) < 1 {
+			log.Error("no dhcp servers were specified")
 			os.Exit(1)
 		}
 
+		config := &config.Config{
+			Interface:       iface,
+			DHCPServers:     servers,
+			MaximumHopCount: count,
+		}
 		if err := config.Validate(); err != nil {
-			log.Error("config validation failed", "error", err)
+			log.Error("invalid configuration", "error", err)
 			os.Exit(1)
 		}
-		config.SetDefaults()
 
 		s, err := server.NewServer(log, config)
 		if err != nil {
@@ -78,5 +81,7 @@ func init() {
 		Level: slog.LevelDebug,
 	}))
 
-	rootCmd.Flags().StringP("config", "c", "/etc/go-dhcp-relay/config.yaml", "path to config file")
+	rootCmd.Flags().StringP("interface", "i", "", "listening interface")
+	rootCmd.Flags().Uint8P("count", "c", config.DefaultMaximumHopCount, "maximum hop count")
+	rootCmd.Flags().StringArrayP("dhcp-servers", "s", nil, "list of dhcp servers to forward dhcp packets to")
 }
