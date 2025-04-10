@@ -7,7 +7,6 @@ require (
 	github.com/metal-stack/v v1.0.3
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/net v0.36.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
