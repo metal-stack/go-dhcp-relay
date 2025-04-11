@@ -1,8 +1,7 @@
 FROM golang:1.24 AS builder
 WORKDIR /work
 COPY . .
-RUN apk add make git
-RUN make build
+RUN make
 
 FROM gcr.io/distroless/static-debian12
 WORKDIR /go-dhcp-relay
