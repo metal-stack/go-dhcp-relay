@@ -46,9 +46,11 @@ func (s *Server) Serve(ctx context.Context) {
 		}
 	}()
 
-	recvChan := make(chan []byte)
-	errChan := make(chan error)
-	dropChan := make(chan bool)
+	var (
+		recvChan = make(chan []byte)
+		errChan  = make(chan error)
+		dropChan = make(chan bool)
+	)
 
 	for {
 		go s.listen(recvChan, errChan, dropChan)

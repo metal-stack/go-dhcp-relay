@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -18,18 +19,16 @@ var log *slog.Logger
 var rootCmd = &cobra.Command{
 	Use:   "go-dhcp-relay",
 	Short: "A simple dhcp relay implementation",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		iface, _ := cmd.Flags().GetString("interface")
 		if iface == "" {
-			log.Error("no listening interface was specified")
-			os.Exit(1)
+			return fmt.Errorf("no listening interface was specified")
 		}
 
 		count, _ := cmd.Flags().GetUint8("count")
 		servers, _ := cmd.Flags().GetStringArray("dhcp-servers")
 		if len(servers) < 1 {
-			log.Error("no dhcp servers were specified")
-			os.Exit(1)
+			return fmt.Errorf("no dhcp servers were specified")
 		}
 
 		config := &config.Config{
@@ -38,14 +37,12 @@ var rootCmd = &cobra.Command{
 			MaximumHopCount: count,
 		}
 		if err := config.Validate(); err != nil {
-			log.Error("invalid configuration", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("invalid configuration: %w", err)
 		}
 
 		s, err := server.NewServer(log, config)
 		if err != nil {
-			log.Error("failed to initialize dhcp relay", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to initialize dhcp relay:%w", err)
 		}
 
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -54,7 +51,6 @@ var rootCmd = &cobra.Command{
 		}()
 
 		var wg sync.WaitGroup
-		var code int
 		wg.Add(1)
 
 		go func() {
@@ -65,13 +61,14 @@ var rootCmd = &cobra.Command{
 		}()
 
 		wg.Wait()
-		os.Exit(code)
+		return nil
 	},
 }
 
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		log.Error("dhcp-relay", "error", err)
 		os.Exit(1)
 	}
 }
