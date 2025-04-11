@@ -13,6 +13,13 @@ LINKMODE := $(LINKMODE) \
 		 -X 'github.com/metal-stack/v.GitSHA1=$(SHA)' \
 		 -X 'github.com/metal-stack/v.BuildDate=$(BUILDDATE)'
 
+
+all: test build
+
+.PHONY: test
+test:
+	go test ./... -race -coverprofile=coverage.out -covermode=atomic && go tool cover -func=coverage.out
+
 .PHONY: build
 build:
 	go build \
@@ -21,6 +28,7 @@ build:
 		"$(LINKMODE)" \
 		-o bin/$(BINARY) \
 		github.com/metal-stack/go-dhcp-relay
+	strip bin/go-dhcp-relay
 
 .PHONY: lint
 lint:
