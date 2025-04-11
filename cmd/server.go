@@ -40,13 +40,13 @@ var (
 )
 
 func rootCmd(cCtx *cli.Context) error {
-	iface := cCtx.String("interface")
+	iface := cCtx.String(interfaceFlag.Name)
 	if iface == "" {
 		return fmt.Errorf("no listening interface was specified")
 	}
 
-	count := cCtx.Uint("maximum-hop-count")
-	servers := cCtx.StringSlice("dhcp-servers")
+	count := cCtx.Uint(maximumHopCountFlag.Name)
+	servers := cCtx.StringSlice(dhcpServersFlag.Name)
 	if len(servers) < 1 {
 		return fmt.Errorf("no dhcp servers were specified")
 	}
