@@ -1,20 +1,17 @@
-package cmd
+package main
 
 import (
 	"fmt"
 
 	"github.com/metal-stack/v"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show currently used version",
-	Run: func(cmd *cobra.Command, args []string) {
+var versionCmd = &cli.Command{
+	Name:  "version",
+	Usage: "show current version",
+	Action: func(*cli.Context) error {
 		fmt.Printf("%s\n", v.V.String())
+		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
 }
