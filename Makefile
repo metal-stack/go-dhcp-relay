@@ -27,7 +27,7 @@ build:
 		-ldflags \
 		"$(LINKMODE)" \
 		-o bin/$(BINARY) \
-		github.com/metal-stack/go-dhcp-relay
+		github.com/metal-stack/go-dhcp-relay/cmd/
 	strip bin/go-dhcp-relay
 
 .PHONY: lint
@@ -40,7 +40,7 @@ docker-build:
 
 .PHONY: lab-up
 lab-up: docker-build
-	docker build -t dhcp-relay:local lab/dhcp-relay
+	docker build -t dhcp-relay:local -f lab/dhcp-relay/Dockerfile .
 	docker build -t dhcp-server:local lab/dhcp-server
 	docker build -t dhcp-client:local lab/dhcp-client
 	sudo containerlab deploy -t ./lab/go-dhcp-relay.clab.yaml
