@@ -73,7 +73,7 @@ func (s *Server) Serve(ctx context.Context) {
 		case err := <-errChan:
 			s.log.Error("error listening for packets", "error", err)
 
-		case _ = <-dropChan:
+		case <-dropChan:
 			// noop
 		}
 	}

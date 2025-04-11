@@ -2,3 +2,4 @@ test
 bin/*
 *.bak
 clab-go-dhcp-relay
+coverage.out
