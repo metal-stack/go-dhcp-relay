@@ -94,6 +94,9 @@ func main() {
 		Name:   "go-dhcp-server",
 		Usage:  "A simple dhcp relay implementation",
 		Action: rootCmd,
+		Commands: []*cli.Command{
+			versionCmd,
+		},
 		Flags: []cli.Flag{
 			interfaceFlag,
 			dhcpServersFlag,
