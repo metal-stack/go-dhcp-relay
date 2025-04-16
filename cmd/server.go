@@ -24,11 +24,11 @@ var (
 		EnvVars: []string{"INTERFACE"},
 	}
 	dhcpServersFlag = &cli.StringSliceFlag{
-		Name:    "dhcp-servers",
+		Name:    "dhcp-server",
 		Aliases: []string{"s"},
 		Value:   cli.NewStringSlice(),
-		Usage:   "list of dhcp servers to forward requests to",
-		EnvVars: []string{"DHCP_SERVERS"},
+		Usage:   "ip address of dhcp server to forward requests to",
+		EnvVars: []string{"DHCP_SERVER"},
 	}
 	maximumHopCountFlag = &cli.UintFlag{
 		Name:    "maximum-hop-count",
