@@ -21,14 +21,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Go 1.24
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
           check-latest: true
           cache: false
 
@@ -37,9 +36,9 @@ jobs:
         with:
           args: --build-tags integration -D protogetter --timeout=10m
 
-      - name: Build
+      - name: Test
         run: |
-          make
+          make test
 
   build:
     name: Docker Build
@@ -59,7 +58,7 @@ jobs:
       - name: Set up Go 1.24
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
           check-latest: true
           cache: false
 
@@ -71,7 +70,7 @@ jobs:
 
       - name: Build
         run: |
-          make server
+          make build
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -79,4 +78,3 @@ jobs:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.tag }}
-        
